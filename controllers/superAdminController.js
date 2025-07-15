@@ -1,0 +1,6 @@
+
+const superAdminController = {
+	async signup(){
+		
+	}
+}

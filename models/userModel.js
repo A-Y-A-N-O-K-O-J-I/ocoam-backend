@@ -1,10 +1,10 @@
 const pool = require("../config/db");
 
 const User = {
-    async create(username, fullName, email, hashedPassword, verificationToken, dob, gender, country, state, address, phone_number) {
-        const query = `INSERT INTO users (username, fullName, email, password, verification_token, dob, gender, country, state, address, phone_number) 
-                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *;`;
-        const values = [username, fullName, email, hashedPassword, verificationToken, dob, gender, country, state, address, phone_number];
+    async create(fullName, email, username, hashedPassword,education_level,verificationToken,dob,address,gender,country,state,phone_number,verified_token_created_at) {
+        const query = `INSERT INTO users (full_name, email, username, password,education_level,verification_token,dob,address,gender,country,state,phone_number,verification_token_created_at) 
+                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,$12,$13) RETURNING *;`;
+        const values = [fullName, email, username, hashedPassword,education_level, verificationToken, dob,address ,gender, country, state, phone_number,verified_token_created_at];
         return pool.query(query, values);
     },
 
@@ -49,31 +49,16 @@ const User = {
         return rows[0]; // Return user if token matches
     },
 async saveResetToken(userId, resetToken) {
+	const now = new Date();
     await pool.query(
-        "UPDATE users SET reset_token = $1, reset_token_created_at = NOW() WHERE id = $2",
-        [resetToken, userId]
+        "UPDATE users SET reset_token = $1, reset_token_created_at = $2 WHERE id = $3",
+        [resetToken,now.toISOString() ,userId]
     );
-},
-
- async isAdmin(identifier) {
-    const result = await pool.query(
-        "SELECT is_admin FROM users WHERE email = COALESCE(NULLIF($1, ''), NULLIF($2, '')) OR username = COALESCE(NULLIF($1, ''), NULLIF($2, ''))",
-        [identifier, identifier]
-    );
-    return result.rows[0]?.is_admin || false;
-},
-
-async isSuperAdmin(identifier) {
-    const result = await pool.query(
-        "SELECT is_super_admin FROM users WHERE email = COALESCE(NULLIF($1, ''), NULLIF($2, '')) OR username = COALESCE(NULLIF($1, ''), NULLIF($2, ''))",
-        [identifier, identifier]
-    );
-    return result.rows[0]?.is_super_admin || false;
 },
 
 async findByUsernameOrEmail(identifier) {
-    const query = "SELECT * FROM users WHERE username = $1 OR email = $1";
-    const result = await pool.query(query, [identifier]);
+    const query = "SELECT * FROM users WHERE username = $1 OR email = $2";
+    const result = await pool.query(query, [identifier,identifier]);
     return result.rows[0];
 },
 

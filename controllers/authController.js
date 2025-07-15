@@ -5,9 +5,21 @@ const crypto = require("crypto");
 const { sendVerificationEmail, sendResetEmail} = require("../helpers/email")
 const authController = {
 async signup(req, res) {
-    const { username, fullName, email, password, dob, gender, country, state, address, phone_number } = req.body;
-    
-    if (!username || !fullName || !email || !password || !dob || !gender || !country || !address) {
+    const {
+       fullName,
+       email,
+       username,
+       password,
+       education_level,
+       dob,
+       address,
+       gender,
+       country,
+       state,
+       phone_number
+     }  = req.body;
+     
+    if (!fullName || !email || !username || !password || !education_level || !dob || !address || !gender || !country || !state || !phone_number) {
         return res.status(400).json({ status: 400, message: "All fields are required." });
     }
 
@@ -16,9 +28,11 @@ async signup(req, res) {
 
         // Generate a unique verification token
         const verificationToken = crypto.randomBytes(32).toString("hex");
-
+//Setting created at manually since i hate using NOW() function cuz sqlite doesn't have it too
+const now = new Date();
+const createdAt = now.toISOString()
         // Save user with the token
-        const newUser = await User.create(username, fullName, email, hashedPassword, verificationToken, dob, gender, country, state, address, phone_number);
+        const newUser = await User.create(fullName, email, username, hashedPassword,education_level,verificationToken, dob,address, gender, country, state,phone_number,createdAt);
 
         // Send verification email
         await sendVerificationEmail(email, verificationToken);
@@ -26,11 +40,6 @@ async signup(req, res) {
         res.status(201).json({ status: 201, message: "Signup successful. Please check your email for verification." });
     } catch (error) {
         console.error("Signup error:", error);
-
-        if (error.code === "23505") {
-            return res.status(400).json({ status: 400, message: "Username or email already exists." });
-        }
-
         res.status(500).json({ status: 500, message: "Internal server error." });
     }
 },
@@ -53,11 +62,12 @@ async signup(req, res) {
 
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-            return res.status(400).json({ status: 400, message: "Invalid username or password." });
+            return res.status(400).json({ status: 400, message: "Invalid username/email or password." });
         }
 
         // Generate JWT token
         const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET, {
+        
             expiresIn: "7d",
         });
 
@@ -100,8 +110,10 @@ async signup(req, res) {
 
         // Check if token is expired
         const tokenAge = new Date() - new Date(user.verification_token_created_at);
-        if (tokenAge > 3600000) { // 1 hour in milliseconds
-            return res.status(410).json({ status: 410 }); // 410: Gone (expired)
+        const twoMinutes = 2 * 60 * 1000; // 120000
+
+        if (tokenAge > twoMinutes) {
+            return res.status(410).json({ status: 410 });
         }
 
         // Mark user as verified
@@ -109,6 +121,7 @@ async signup(req, res) {
 
         res.status(200).json({ status: 200 });
     } catch (error) {
+    	console.error("We got it",error);
         res.status(500).json({ status: 500 });
     }
 },

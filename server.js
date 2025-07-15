@@ -10,4 +10,7 @@ app.use(bodyParser.json());
 app.use(cors());
 
 app.use('/auth', authRoutes);
-module.exports=app 
+
+app.listen(3000, ()=>{
+	console.log("Server Listening On Port 3000")
+})

@@ -21,7 +21,7 @@ const User = {
     },
 
     async findByVerificationToken(token) {
-        const query = `SELECT id FROM users WHERE verification_token = $1`;
+        const query = `SELECT * FROM users WHERE verification_token = $1`;
         const { rows } = await pool.query(query, [token]);
         return rows[0];
     },
@@ -59,6 +59,16 @@ async saveResetToken(userId, resetToken) {
 async findByUsernameOrEmail(identifier) {
     const query = "SELECT * FROM users WHERE username = $1 OR email = $2";
     const result = await pool.query(query, [identifier,identifier]);
+    return result.rows[0];
+},
+async checkUsername(identifier) {
+    const query = "SELECT id FROM users WHERE username = $1";
+    const result = await pool.query(query, [identifier]);
+    return result.rows[0];
+},
+async checkEmail(identifier) {
+    const query = "SELECT * FROM users WHERE email = $1";
+    const result = await pool.query(query, [identifier]);
     return result.rows[0];
 },
 

@@ -23,6 +23,8 @@ async signup(req, res) {
         return res.status(400).json({ status: 400, message: "All fields are required." });
     }
 
+    const checkEmail = await User.checkEmail(email);
+    const checkUsername = await User.checkUsername(username)
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -70,8 +72,15 @@ const createdAt = now.toISOString()
         
             expiresIn: "7d",
         });
+        res.cookie("accessToken", token, {
+  httpOnly: true,
+  secure: false, // change to true when using HTTPS
+  sameSite: "none", // or "strict" or "none" depending on your frontend-backend setup
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  path: "/", // ✅ makes the cookie accessible on all routes
+});
 
-        res.status(200).json({ status: 200, token });
+        res.status(200).json({ status: 200, message:"Login Successful" });
     } catch (error) {
         console.error("we got this",error)
         res.status(500).json({ status: 500, message: "Internal server error." });
@@ -99,6 +108,7 @@ const createdAt = now.toISOString()
             res.status(500).json({ status: 500, message: "Internal server error." });
         }
     },
+    
       async verifyEmail(req, res) {
     const { token } = req.query;
     if (!token) return res.status(400).json({ status: 400 });

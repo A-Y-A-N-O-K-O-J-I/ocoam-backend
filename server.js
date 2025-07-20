@@ -9,7 +9,11 @@ const cookieParser = require("cookie-parser");
 const app = express();
 
 app.use(bodyParser.json());
-app.use(cors());
+app.use(cors({
+  origin: "http://localhost:5173", // frontend URL
+  credentials: true // must match!
+}));
+
 app.use(cookieParser());
 
 app.use('/auth', authRoutes);

@@ -32,9 +32,11 @@ const User = {
     },
 
     async updateVerificationToken(id, newToken) {
+        const now = new Date();
+const createdAt = now.toISOString()
         await pool.query(
-            "UPDATE users SET verification_token = $1, verification_token_created_at = NOW() WHERE id = $2",
-            [newToken, id]
+            "UPDATE users SET verification_token = $1, verification_token_created_at = $2 WHERE id = $3",
+            [newToken,createdAt,id]
         );
     },
 

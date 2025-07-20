@@ -25,6 +25,21 @@ async signup(req, res) {
 
     const checkEmail = await User.checkEmail(email);
     const checkUsername = await User.checkUsername(username)
+    if(checkEmail){
+        res.status(409).json({
+            status:409,
+            message:"User with that email Already exists"
+        })
+        return;
+    }
+
+    if(checkUsername){
+        res.status(409).json({
+            status:409,
+            message:"User with that username Already exists"
+        })
+        return;
+    }
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -75,7 +90,7 @@ const createdAt = now.toISOString()
         res.cookie("accessToken", token, {
   httpOnly: true,
   secure: false, // change to true when using HTTPS
-  sameSite: "none", // or "strict" or "none" depending on your frontend-backend setup
+  sameSite: "lax", // or "strict" or "none" depending on your frontend-backend setup
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   path: "/", // ✅ makes the cookie accessible on all routes
 });
@@ -120,9 +135,9 @@ const createdAt = now.toISOString()
 
         // Check if token is expired
         const tokenAge = new Date() - new Date(user.verification_token_created_at);
-        const twoMinutes = 2 * 60 * 1000; // 120000
+        const fifteenMinutes = 60 * 60 * 1000; // 120000
 
-        if (tokenAge > twoMinutes) {
+        if (tokenAge > fifteenMinutes) {
             return res.status(410).json({ status: 410 });
         }
 
@@ -137,7 +152,7 @@ const createdAt = now.toISOString()
 },
 
     async reverifyEmail(req, res) {
-    const { email } = req.body;
+    const { email } = req.query;
     if (!email) return res.status(400).json({ status: 400 });
 
     try {
@@ -160,6 +175,7 @@ const createdAt = now.toISOString()
 
         res.status(200).json({ status: 200 });
     } catch (error) {
+        console.error("Reverify email error: ",error)
         res.status(500).json({ status: 500 });
     }
 },

@@ -34,6 +34,7 @@ app.use(cookieParser());
 app.use('/auth', authRoutes);
 app.use('/super-admin', superAdmRoutes);
 
+module.exports = app;
 app.listen(3000, ()=>{
 	console.log("Server Listening On Port 3000")
 })

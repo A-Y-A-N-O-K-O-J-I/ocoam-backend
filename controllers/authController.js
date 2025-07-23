@@ -16,10 +16,10 @@ async signup(req, res) {
        gender,
        country,
        state,
-       phone_number
+       phone_number,
      }  = req.body;
      
-    if (!fullName || !email || !username || !password || !education_level || !dob || !address || !gender || !country || !state || !phone_number) {
+    if (!fullName || !email || !username || !password || !education_level || !dob || !address || !gender || !country || !phone_number) {
         return res.status(400).json({ status: 400, message: "All fields are required." });
     }
 
@@ -52,6 +52,7 @@ const createdAt = now.toISOString()
         const newUser = await User.create(fullName, email, username, hashedPassword,education_level,verificationToken, dob,address, gender, country, state,phone_number,createdAt);
 
         // Send verification email
+        //console.log("Successfully Generated Verification token",verificationToken)
         await sendVerificationEmail(email, verificationToken);
 
         res.status(201).json({ status: 201, message: "Signup successful. Please check your email for verification." });
@@ -72,24 +73,23 @@ const createdAt = now.toISOString()
             return res.status(400).json({ status: 400, message: "Invalid username/email or password." });
         }
 
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(400).json({ status: 400, message: "Invalid username/email or password." });
+        }
         // Check if the user is verified
         if (!user.is_verified) {
             return res.status(403).json({ status: 403, message: "Please verify your email before logging in." });
         }
 
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-            return res.status(400).json({ status: 400, message: "Invalid username/email or password." });
-        }
 
         // Generate JWT token
         const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET, {
-        
             expiresIn: "7d",
         });
         res.cookie("accessToken", token, {
   httpOnly: true,
-  secure: false, // change to true when using HTTPS
+  secure: process.env.NODE_ENV === "production", // change to true when using HTTPS
   sameSite: "lax", // or "strict" or "none" depending on your frontend-backend setup
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   path: "/", // ✅ makes the cookie accessible on all routes
@@ -107,7 +107,14 @@ const createdAt = now.toISOString()
             // `authMiddleware` don already check token and put user details inside `req.user`
             const user = await User.findById(req.user.id);
             if (!user) {
-                return res.status(404).json({ status: 404, message: "User not found" });
+                res.clearCookie("accessToken",{
+                httpOnly: true,
+                secure: process.env.NODE_ENV === "production",
+                sameSite: "lax",
+                path: "/", // ✅ makes the cookie accessible on all routes
+                });
+                res.status(404).json({ status: 404, message: "User not found" });
+                return;
             }
 
             // Return user info
@@ -125,13 +132,14 @@ const createdAt = now.toISOString()
     },
     
       async verifyEmail(req, res) {
-    const { token } = req.query;
+    const { token } = req.body;
     if (!token) return res.status(400).json({ status: 400 });
 
     try {
         // Find user by token
         const user = await User.findByVerificationToken(token);
-        if (!user) return res.status(400).json({ status: 400 });
+        console.log(user)
+        if (!user) return res.status(400).json({ status: 400,message:"User not found" });
 
         // Check if token is expired
         const tokenAge = new Date() - new Date(user.verification_token_created_at);
@@ -152,7 +160,7 @@ const createdAt = now.toISOString()
 },
 
     async reverifyEmail(req, res) {
-    const { email } = req.query;
+    const { email } = req.body;
     if (!email) return res.status(400).json({ status: 400 });
 
     try {
@@ -172,15 +180,15 @@ const createdAt = now.toISOString()
 
         // Send new verification email
         await sendVerificationEmail(email, verificationToken);
-
+        
         res.status(200).json({ status: 200 });
     } catch (error) {
         console.error("Reverify email error: ",error)
         res.status(500).json({ status: 500 });
     }
 },
-	async forgotPassword(req, res) {
-        const { email } = req.body;
+async forgotPassword(req, res) {
+    const { email } = req.body;
         if (!email) {
             return res.status(400).json({ status: 400, message: "Email is required." });
         }
@@ -193,12 +201,13 @@ const createdAt = now.toISOString()
 
             // Generate a password reset token
             const resetToken = crypto.randomBytes(32).toString("hex");
-
+            
             // Save token in the database
             await User.saveResetToken(user.id, resetToken);
 
             // Send reset link via email
-            await sendResetEmail(email, resetToken);
+            console.log("Forget password token",resetToken)
+            //await sendResetEmail(email, resetToken);
 
             res.status(200).json({ status: 200, message: "Password reset link sent to email." });
         } catch (error) {
@@ -212,7 +221,7 @@ async resetPassword(req, res) {
         if (!token || !newPassword) {
             return res.status(400).json({ status: 400, message: "Token and new password are required." });
         }
-
+        
         try {
             // Find user by reset token
             const user = await User.findByResetToken(token);
@@ -220,8 +229,9 @@ async resetPassword(req, res) {
 
             // Check if token has expired
             const tokenAge = new Date() - new Date(user.reset_token_created_at);
-            if (tokenAge > 3600000) { // 1 hour
-                return res.status(410).json({ status: 410, message: "Token expired." });
+             const fifteenMinutes = 60 * 60 * 1000; 
+            if (tokenAge > fifteenMinutes) { // 15 minutes
+                return res.status(410).json({ status: 410, message: "Invalid or expired token." });
             }
 
             // Hash new password and update user
@@ -230,55 +240,24 @@ async resetPassword(req, res) {
 
             // Clear reset token after successful password update
             await User.clearResetToken(user.id);
-
+            
             res.status(200).json({ status: 200, message: "Password reset successful." });
         } catch (error) {
             res.status(500).json({ status: 500, message: "Internal server error." });
         }
     },
-    async updatePasswordPage(req, res) {
-    const { token } = req.query;
-    if (!token) {
-        return res.status(400).send("Invalid or missing token.");
-    }
+    
+    async logout(req, res){
+  // Clear the auth cookie by setting it to expire immediately
+  res.clearCookie("accessToken",{
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax",
+  path: "/", // ✅ makes the cookie accessible on all routes
+});
 
-    try {
-        // Verify token
-        const user = await User.findByResetToken(token);
-        if (!user) {
-            return res.status(400).send("Invalid or expired token.");
-        }
-
-        // Serve an HTML page with an input for the new password
-        res.send(`
-            <form id="resetForm">
-    <input type="hidden" id="token" value="${token}" />
-    <label>New Password:</label>
-    <input type="password" id="newPassword" required />
-    <button type="submit">Reset Password</button>
-</form>
-
-<script>
-    document.getElementById("resetForm").addEventListener("submit", async function (event) {
-        event.preventDefault(); // Prevent normal form submission
-
-        const token = document.getElementById("token").value;
-        const newPassword = document.getElementById("newPassword").value;
-
-        const response = await fetch("/auth/reset-password", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ token, newPassword })
-        });
-
-        const result = await response.json();
-        alert(result.message);
-    });
-</script>        `);
-    } catch (error) {
-        res.status(500).send("Internal Server Error");
-    }
+  return res.status(200).json({ message: 'Logged out successfully' });
 }
-};
+    };
 
 module.exports = authController;

@@ -15,7 +15,7 @@ const User = {
     },
 
     async findById(id) {
-        const query = `SELECT id, username, fullName, email, dob, gender, country, state, address, phone_number, is_verified FROM users WHERE id = $1`;
+        const query = `SELECT * FROM users WHERE id = $1`;
         const { rows } = await pool.query(query, [id]);
         return rows[0]; 
     },
@@ -80,6 +80,7 @@ async clearResetToken(userId) {
         [userId]
     );
 },
+
 
     async updatePassword(userId, hashedPassword) {
         const query = `

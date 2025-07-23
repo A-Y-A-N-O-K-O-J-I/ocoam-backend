@@ -7,6 +7,21 @@ const superAdmRoutes = require('./routes/superAdminRoutes');
 const cookieParser = require("cookie-parser");
 
 const app = express();
+app.use((req, res, next) => {
+  const ua = req.get('User-Agent') || '';
+  if (/curl|wget|python|postman/i.test(ua.toLowerCase())) {
+    return res.status(404).send('Not Found');
+  }
+  next();
+});
+app.use((req, res, next) => {
+  const origin = req.get('Origin') || '';
+  if (!origin.includes('localhost:5173')) {
+    return res.status(403).send('Forbidden');
+  }
+  next();
+});
+
 
 app.use(bodyParser.json());
 app.use(cors({

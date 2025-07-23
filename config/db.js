@@ -17,11 +17,14 @@ const createTableQuery = `CREATE TABLE IF NOT EXISTS users (
   gender TEXT,
   country TEXT,
   state TEXT,
+  is_admin BOOLEAN DEFAULT 0,
+  is_super_admin BOOLEAN DEFAULT 0,
   phone_number TEXT,
   verification_token TEXT,
   is_verified INTEGER DEFAULT 0, -- 0 = false, 1 = true
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );`
+
 
 const createSuperAdminTable = `CREATE TABLE IF NOT EXISTS super_admins (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -44,7 +47,6 @@ const createSuperAdminTable = `CREATE TABLE IF NOT EXISTS super_admins (
 
 async function Xome(){
 	await db.query(createTableQuery);
-	await db.query(createSuperAdminTable);
   
 	console.log("Table Created Successfully")
 }

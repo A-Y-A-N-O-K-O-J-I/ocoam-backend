@@ -42,7 +42,7 @@ const createdAt = now.toISOString()
     },
 
     async verifyUser(id) {
-        const query = `UPDATE users SET is_verified = true, verification_token = NULL WHERE id = $1 RETURNING *`;
+        const query = `UPDATE users SET is_verified = 1, verification_token = NULL WHERE id = $1 RETURNING *`;
         const { rows } = await pool.query(query, [id]);
         return rows[0];
     },

@@ -39,5 +39,7 @@ app.use('/auth', authRoutes);
 app.use('/moderator',moderatorRoutes);
 app.use('/students',studentsRoutes);
 app.use('/classes',classesRoutes);
-
+app.listen(3000,()=>{
+  console.log("Server Running On Port 3000")
+})
 module.exports = app;

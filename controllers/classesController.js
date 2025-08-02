@@ -67,9 +67,9 @@ async deleteClass(req, res) {
 
 async listClasses(req, res) {
   try {
-    const moderator_id =  req.user?.id || 5
+    const moderator_id =  req.user?.id
     const classes = await Classes.listClasses(moderator_id);
-
+console.log(classes)
     res.json({
       status: 200,
       message: "Classes fetched successfully",

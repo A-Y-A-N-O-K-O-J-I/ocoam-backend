@@ -21,7 +21,7 @@ app.use((req, res, next) => {
 
 app.use((req, res, next) => {
   const origin = req.get('Origin') || '';
-  if (!origin.includes('localhost:5173')) {
+  if (!origin.includes('api.oyocam.org')) {
     return res.status(403).send('Forbidden');
   }
   next();
@@ -29,7 +29,7 @@ app.use((req, res, next) => {
 
 app.use(bodyParser.json());
 app.use(cors({
-  origin: "http://localhost:5173",
+  origin: "https://api.oyocam.org",
   credentials: true
 }));
 app.use(cookieParser());

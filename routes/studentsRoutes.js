@@ -1,12 +1,12 @@
 const express = require("express");
-const superAdminController = require("../controllers/superAdminController");
+const students = require("../controllers/studentController");
 const authMiddleware = require("../middlewares/authMiddleware");
 
 
 const router = express.Router();
-router.post("/signup", superAdminController.signupSuperAdmin);
-router.get("/verify-email", superAdminController.verifySuperAdminEmail);
-router.post("/reverify-email", superAdminController.reverifySuperAdminEmail);
+router.get("/dashboard", students.dashboard);
+// router.get("/students", moderator.getStudentsList);
+// router.get("/teachers", moderator.getTeacherList);
 
 // router.post("/reverify-email", authController.reverifyEmail);
 // router.post("/login", authController.login);

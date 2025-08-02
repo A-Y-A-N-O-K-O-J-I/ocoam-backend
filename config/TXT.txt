@@ -1,0 +1,6 @@
+CREATE TABLE users(
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+name TEXT NOT NULL,
+email TEXT NOT NULL,
+password TEXT NOT NULL
+);INSERT INTO users (name,email,password) VALUES("ayanokoji","ayanokojix23@gmail.com","segun");INSERT INTO users (name,email,password) VALUES("my name","segun23@gmail.com","david");INSERT INTO users (name,email,password) VALUES("esther","esther23@gmail.com","esther");INSERT INTO users (name,email,password) VALUES("bunmi","oluwabunmix09@gmail.com","oluwabunmi");

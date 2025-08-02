@@ -1,40 +1,45 @@
-require('dotenv').config()
+require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
-const authRoutes = require('./routes/authRoutes');
-const superAdmRoutes = require('./routes/superAdminRoutes');
 const cookieParser = require("cookie-parser");
+const authRoutes = require('./routes/authRoutes');
+const moderatorRoutes = require('./routes/moderatorRoutes');
+const classesRoutes = require('./routes/classesRoutes');
+const studentsRoutes = require('./routes/studentsRoutes');
 
 const app = express();
-app.use((req, res, next) => {
-  const ua = req.get('User-Agent') || '';
-  if (/curl|wget|python|postman/i.test(ua.toLowerCase())) {
-    return res.status(404).send('Not Found');
-  }
-  next();
-});
-app.use((req, res, next) => {
-  const origin = req.get('Origin') || '';
-  if (!origin.includes('localhost:5173')) {
-    return res.status(403).send('Forbidden');
-  }
-  next();
-});
 
+// 👇 Your normal middlewares
+// app.use((req, res, next) => {
+//   const ua = req.get('User-Agent') || '';
+//   if (/curl|wget|python|postman/i.test(ua.toLowerCase())) {
+//     return res.status(404).send('Not Found');
+//   }
+//   next();
+// });
+
+// app.use((req, res, next) => {
+//   const origin = req.get('Origin') || '';
+//   if (!origin.includes('localhost:5173')) {
+//     return res.status(403).send('Forbidden');
+//   }
+//   next();
+// });
 
 app.use(bodyParser.json());
 app.use(cors({
-  origin: "http://localhost:5173", // frontend URL
-  credentials: true // must match!
+  origin: "http://localhost:5173",
+  credentials: true
 }));
-
 app.use(cookieParser());
 
+// 👇 Your custom routes
 app.use('/auth', authRoutes);
-app.use('/super-admin', superAdmRoutes);
+app.use('/moderator',moderatorRoutes);
+app.use('/students',studentsRoutes);
+app.use('/classes',classesRoutes);
 
-module.exports = app;
-app.listen(3000, ()=>{
-	console.log("Server Listening On Port 3000")
-})
+app.listen(3000, () => {
+  console.log("Server Listening on Port 3000");
+});

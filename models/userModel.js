@@ -1,4 +1,5 @@
 const pool = require("../config/db");
+const db = require("../config/db");
 
 const User = {
     async create(fullName, email, username, hashedPassword,education_level,verificationToken,dob,address,gender,country,state,phone_number,verified_token_created_at) {
@@ -63,6 +64,8 @@ async findByUsernameOrEmail(identifier) {
     const result = await pool.query(query, [identifier,identifier]);
     return result.rows[0];
 },
+
+
 async checkUsername(identifier) {
     const query = "SELECT id FROM users WHERE username = $1";
     const result = await pool.query(query, [identifier]);
@@ -81,7 +84,50 @@ async clearResetToken(userId) {
     );
 },
 
+async isModerator(id){
+    const results = await pool.query("select is_moderator from users where id = $1",[id])
+    return results?.rows[0]?.is_moderator;
+},
 
+
+async getDashboardInfo(){
+    const students = await pool.query("SELECT COUNT(*) as total_students from users where is_moderator = $1 and is_teacher = $2",[0,0])
+    const teacher = await pool.query("SELECT COUNT(*) as total_teachers from users where is_moderator = $1",[1])
+    const classes = await pool.query("SELECT COUNT(*) as total_classes from live_classes")
+
+    return {
+        students,
+        teacher,
+        classes
+    }
+},
+async getStudentsStats() {
+    try {
+      const totalQuery = db.query("SELECT COUNT(*) as count FROM live_classes");
+      const scheduledQuery = db.query(
+        "SELECT COUNT(*) as count FROM live_classes WHERE status = $1",
+        ["scheduled"]
+      );
+      const liveQuery = db.query(
+        "SELECT COUNT(*) as count FROM live_classes WHERE status = $1",
+        ["live"]
+      );
+
+      const [totalResult, scheduledResult, liveResult] = await Promise.all([
+        totalQuery,
+        scheduledQuery,
+        liveQuery,
+      ]);
+
+      return {
+        total: parseInt(totalResult.rows[0].count),
+        scheduled: parseInt(scheduledResult.rows[0].count),
+        live: parseInt(liveResult.rows[0].count),
+      };
+    } catch (err) {
+      throw err;
+    }
+  },
     async updatePassword(userId, hashedPassword) {
         const query = `
             UPDATE users

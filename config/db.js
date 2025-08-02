@@ -7,22 +7,24 @@ const db = fs.existsSync(devPath) ? require('./dev') : require('./prod');
 
 const createTableQuery = `CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT NOT NULL,
-  email TEXT UNIQUE NOT NULL,
   username TEXT UNIQUE NOT NULL,
+  full_name TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
   password TEXT NOT NULL,
-  education_level TEXT,
   dob DATE NOT NULL,
-  address TEXT,
   gender TEXT,
   country TEXT,
   state TEXT,
-  is_admin BOOLEAN DEFAULT 0,
-  is_super_admin BOOLEAN DEFAULT 0,
+  address TEXT,
   phone_number TEXT,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   verification_token TEXT,
-  is_verified INTEGER DEFAULT 0, -- 0 = false, 1 = true
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  is_verified BOOLEAN DEFAULT 0,
+  reset_token TEXT,
+  verification_token_created_at TEXT,
+  education_level TEXT NOT NULL,
+  reset_token_created_at DATETIME,
+  is_moderator BOOLEAN DEFAULT 0
 );`
 
 

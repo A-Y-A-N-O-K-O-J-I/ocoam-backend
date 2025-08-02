@@ -22,7 +22,7 @@ const Classes = {
 
   async deleteClass(id, moderator_id) {
     const result = await db.query(
-      `DELETE FROM classes WHERE id = $1 AND moderator_id = $2 RETURNING *`,
+      `DELETE FROM live_classes WHERE id = $1 AND moderator_id = $2 RETURNING *`,
       [id, moderator_id]
     );
     return result.rows[0]; // return deleted class

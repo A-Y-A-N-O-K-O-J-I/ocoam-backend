@@ -44,15 +44,14 @@ async deleteClass(req, res) {
     const { id } = req.params;
     const moderator_id = req.user.id;
 
-    const deleted = await Classes.deleteClass(id, moderator_id);
-
-    if (!deleted) {
+    const exists = await Classes.findClassById(id)
+    if(!exists){
       return res.status(404).json({
-        status: 404,
-        message: "Class not found or not authorized"
-      });
+        status:404,
+        message:"Class does not exist"
+      })
     }
-
+    const deleted = await Classes.deleteClass(id, moderator_id);
     res.json({
       status: 200,
       message: "Class deleted successfully"

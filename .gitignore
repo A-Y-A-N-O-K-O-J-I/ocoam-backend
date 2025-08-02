@@ -4,3 +4,4 @@ node_modules/
 .yarn/
 bin/
 dev.db
+users.db

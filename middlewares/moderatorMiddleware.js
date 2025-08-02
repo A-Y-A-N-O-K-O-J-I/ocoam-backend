@@ -1,6 +1,6 @@
 const User = require("../models/userModel");
-
-async function moderatorMiddleware(){
+const jwt = require("jsonwebtoken")
+async function moderatorMiddleware(req,res,next){
     const token = req.cookies?.accessToken;
     
         if (!token) {
@@ -19,6 +19,7 @@ async function moderatorMiddleware(){
             req.user = decoded;
             next(); // Move to next middleware or route handler
         } catch (error) {
+            console.error(error)
             return res.status(401).json({ status: 401, message: "Invalid or expired token" });
         }
 }

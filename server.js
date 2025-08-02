@@ -11,21 +11,21 @@ const studentsRoutes = require('./routes/studentsRoutes');
 const app = express();
 
 // 👇 Your normal middlewares
-// app.use((req, res, next) => {
-//   const ua = req.get('User-Agent') || '';
-//   if (/curl|wget|python|postman/i.test(ua.toLowerCase())) {
-//     return res.status(404).send('Not Found');
-//   }
-//   next();
-// });
+app.use((req, res, next) => {
+  const ua = req.get('User-Agent') || '';
+  if (/curl|wget|python|postman/i.test(ua.toLowerCase())) {
+    return res.status(404).send('Not Found');
+  }
+  next();
+});
 
-// app.use((req, res, next) => {
-//   const origin = req.get('Origin') || '';
-//   if (!origin.includes('localhost:5173')) {
-//     return res.status(403).send('Forbidden');
-//   }
-//   next();
-// });
+app.use((req, res, next) => {
+  const origin = req.get('Origin') || '';
+  if (!origin.includes('localhost:5173')) {
+    return res.status(403).send('Forbidden');
+  }
+  next();
+});
 
 app.use(bodyParser.json());
 app.use(cors({
@@ -40,6 +40,4 @@ app.use('/moderator',moderatorRoutes);
 app.use('/students',studentsRoutes);
 app.use('/classes',classesRoutes);
 
-app.listen(3000, () => {
-  console.log("Server Listening on Port 3000");
-});
+module.exports = app;

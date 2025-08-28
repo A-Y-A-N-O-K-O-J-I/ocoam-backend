@@ -126,6 +126,7 @@ async function Xome(){
 	await db.query(createTableQuery);
   await db.query(createClassesQuery);
   await db.query(createLibraryQuery);
+  await db.query(createLibraryQuery2);
   
 	console.log("Table Created Successfully")
 }

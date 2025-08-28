@@ -6,13 +6,11 @@ const authMiddleware = require("../middlewares/authMiddleware"); // Your auth mi
 const router = express.Router();
 
 // Configure multer for temporary file storage
-const upload = multer({
-    dest: 'temp-uploads/',
-    limits: {
-        fileSize: 50 * 1024 * 1024, // 50MB limit per file
-    },
-});
-
+const storage = multer.memoryStorage();
+const upload = multer({ 
+    storage,
+    limits: { fileSize: 50 * 1024 * 1024 }
+ });
 // Routes
 router.get("/get-library", authMiddleware,libraryController.getLibrary);
 router.get("/get-library/:id",authMiddleware, libraryController.getLibraryFiles);

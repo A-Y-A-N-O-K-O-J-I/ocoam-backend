@@ -80,7 +80,7 @@ const libraryController = {
             for (const file of files) {
                 try {
                     const message = await bot.telegram.sendDocument(STORAGE_CHAT_ID, {
-                        source: file.path,
+                        source: file.buffer,
                         filename: file.originalname
                     }, {
                         caption: `📚 ${name}\n${description ? `📝 ${description}` : ''}\n📄 ${file.originalname}`
@@ -95,13 +95,8 @@ const libraryController = {
                     });
 
                     // Clean up temp file
-                    fs.unlinkSync(file.path);
                 } catch (error) {
                     console.error('Error uploading to Telegram:', error);
-                    // Clean up temp file on error
-                    if (fs.existsSync(file.path)) {
-                        fs.unlinkSync(file.path);
-                    }
                 }
             }
 
@@ -234,7 +229,7 @@ async addFilesToLibrary(req, res) {
         for (const file of files) {
             try {
                 const message = await bot.telegram.sendDocument(STORAGE_CHAT_ID, {
-                    source: file.path,
+                    source: file.buffer,
                     filename: file.originalname
                 }, {
                     caption: `📚 ${library.name} (Additional)\n${description ? `📝 ${description}` : ''}\n📄 ${file.originalname}`
@@ -248,12 +243,8 @@ async addFilesToLibrary(req, res) {
                     mime_type: file.mimetype
                 });
 
-                fs.unlinkSync(file.path);
             } catch (error) {
                 console.error('Error uploading to Telegram:', error);
-                if (fs.existsSync(file.path)) {
-                    fs.unlinkSync(file.path);
-                }
             }
         }
 

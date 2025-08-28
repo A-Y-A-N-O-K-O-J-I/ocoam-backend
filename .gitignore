@@ -4,4 +4,6 @@ node_modules/
 .yarn/
 bin/
 dev.db
+config/dev.js
 users.db
+temp-uploads/

@@ -1,0 +1,12 @@
+{
+	"folders": [
+		{
+			"name": "ocoam-frontend",
+			"path": "../ocoam-frontend"
+		},
+		{
+			"name": "ocoam-backend",
+			"path": "."
+		}
+	]
+}

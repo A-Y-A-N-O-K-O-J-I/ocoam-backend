@@ -1,3 +1,4 @@
+const { message } = require("telegraf/filters");
 const db = require("../config/db");
 const User = require("../models/userModel");
 const moderatorController = {
@@ -51,7 +52,26 @@ const moderatorController = {
       message: "An error occurred",
     });
   }
+},
+async getProfileInfo(req,res){
+  try {
+    const moderatorInfo = await db.query("SELECT * FROM users WHERE id = $1 AND is_moderator = $2",[req.user.id,1]);
+    if(moderatorInfo.rows.length === 0){
+      return res.status(404).json({
+        status:404,
+        message:"User was not found"
+      })
+    }
+    res.json({
+      status:200,
+      profile:moderatorInfo.rows[0]
+    })
+  } catch (error) {
+    res.status(500).json({
+      status:500,
+      message:"An error Occured"
+    })
+  }
 }
-
 };
 module.exports = moderatorController;

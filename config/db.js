@@ -24,8 +24,7 @@ const createTableQuery = isDev ? `CREATE TABLE IF NOT EXISTS users (
   verification_token_created_at TEXT,
   education_level TEXT NOT NULL,
   reset_token_created_at DATETIME,
-  is_moderator BOOLEAN DEFAULT 0,
-  is_teacher BOOLEAN DEFAULT 0
+  is_moderator BOOLEAN DEFAULT 0
 );` : `CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
   username TEXT UNIQUE NOT NULL,
@@ -45,9 +44,59 @@ const createTableQuery = isDev ? `CREATE TABLE IF NOT EXISTS users (
   verification_token_created_at TEXT,
   education_level TEXT NOT NULL,
   reset_token_created_at TEXT,
-  is_moderator INTEGER DEFAULT 0,
-  is_teacher INTEGER DEFAULT 0
+  is_moderator INTEGER DEFAULT 0
 );`
+
+const createLibraryQuery2 = isDev ? `
+CREATE TABLE IF NOT EXISTS library_files (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ library_id INTEGER NOT NULL,
+ telegram_file_id TEXT NOT NULL,
+ telegram_message_id INTEGER NOT NULL,
+ original_name TEXT NOT NULL,
+ file_size INTEGER,
+ mime_type TEXT,
+ upload_order INTEGER DEFAULT 0,
+ created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+ FOREIGN KEY (library_id) REFERENCES library(id) ON DELETE CASCADE
+);
+` : `
+CREATE TABLE IF NOT EXISTS library_files (
+  id SERIAL PRIMARY KEY,
+  library_id INTEGER NOT NULL,
+  telegram_file_id TEXT NOT NULL,
+  telegram_message_id INTEGER NOT NULL,
+  original_name TEXT NOT NULL,
+  file_size INTEGER,
+  mime_type TEXT,
+  upload_order INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (library_id) REFERENCES library(id) ON DELETE CASCADE
+);
+
+`
+
+const createLibraryQuery = isDev ? `
+CREATE TABLE IF NOT EXISTS library (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ name TEXT NOT NULL,
+ description TEXT,
+ upload_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+ uploaded_by INTEGER,
+ total_files INTEGER DEFAULT 0,
+ FOREIGN KEY (uploaded_by) REFERENCES users(id)
+);
+` : `
+CREATE TABLE IF NOT EXISTS library (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT,
+  upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  uploaded_by INTEGER,
+  total_files INTEGER DEFAULT 0,
+  FOREIGN KEY (uploaded_by) REFERENCES users(id)
+);
+`
 
 const createClassesQuery = isDev ? `
 CREATE TABLE IF NOT EXISTS live_classes (
@@ -75,7 +124,8 @@ CREATE TABLE IF NOT EXISTS live_classes (
 `;
 async function Xome(){
 	await db.query(createTableQuery);
-  await db.query(createClassesQuery)
+  await db.query(createClassesQuery);
+  await db.query(createLibraryQuery);
   
 	console.log("Table Created Successfully")
 }

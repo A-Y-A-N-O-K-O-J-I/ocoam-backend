@@ -91,7 +91,7 @@ async isModerator(id){
 
 
 async getDashboardInfo(){
-    const students = await pool.query("SELECT COUNT(*) as total_students from users where is_moderator = $1 and is_teacher = $2",[0,0])
+    const students = await pool.query("SELECT COUNT(*) as total_students from users where is_moderator = $1",[0])
     const teacher = await pool.query("SELECT COUNT(*) as total_teachers from users where is_moderator = $1",[1])
     const classes = await pool.query("SELECT COUNT(*) as total_classes from live_classes")
 

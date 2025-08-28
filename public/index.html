@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Upload Library</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f8f9fa;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .upload-container {
+      background: #fff;
+      padding: 20px 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      width: 400px;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #333;
+    }
+    label {
+      font-weight: bold;
+      margin-top: 10px;
+      display: block;
+    }
+    input[type="text"], textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+    input[type="file"] {
+      margin-top: 10px;
+    }
+    button {
+      width: 100%;
+      background: #007bff;
+      color: #fff;
+      border: none;
+      padding: 12px;
+      border-radius: 5px;
+      margin-top: 15px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <div class="upload-container">
+    <h2>Upload Library</h2>
+    <form action="/library/upload-library" method="POST" enctype="multipart/form-data">
+      <label for="name">Library Name:</label>
+      <input type="text" name="name" id="name" placeholder="Enter library name" required>
+
+      <label for="description">Description:</label>
+      <textarea name="description" id="description" rows="3" placeholder="Enter description"></textarea>
+
+      <label for="files">Select Files:</label>
+      <input type="file" name="files" id="files" multiple required>
+
+      <button type="submit">Upload</button>
+    </form>
+  </div>
+</body>
+</html>

@@ -33,7 +33,7 @@ async function sendApplicationConfirmationEmail(userEmail, applicationId, pionee
     : "";
 
   const mailOptions = {
-    from: process.env.EMAIL_USER,
+    from: process.env.USER_EMAIL,
     to: userEmail,
     subject: "Application Submitted Successfully - Oduduwa College of Yoruba Medicine",
     html: `

@@ -1,10 +1,20 @@
 const express = require("express");
 const students = require("../controllers/studentController");
 const authMiddleware = require("../middlewares/authMiddleware");
+const applicationController = require("../controllers/applicationController");
+const { uploadApplicationDocuments } = require("../middlewares/multerConfig");
 
 
 const router = express.Router();
-router.get("/dashboard", students.dashboard);
+router.get("/dashboard", authMiddleware, students.dashboard);
+router.post(
+  "/apply",
+  authMiddleware,
+  uploadApplicationDocuments,
+  applicationController.submitApplication
+);
+router.get("/application-status",authMiddleware, applicationController.checkApplicationStatus);
+
 // router.get("/students", moderator.getStudentsList);
 // router.get("/teachers", moderator.getTeacherList);
 

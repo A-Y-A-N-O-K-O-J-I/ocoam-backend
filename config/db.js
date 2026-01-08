@@ -123,7 +123,7 @@ CREATE TABLE IF NOT EXISTS live_classes (
 );
 `;
 
-const createApplicationTableQuery = isDev ? `CREATE TABLE applications (
+const createApplicationTableQuery = isDev ? `CREATE TABLE IF NOT EXISTS applications (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
     
@@ -184,11 +184,7 @@ const createApplicationTableQuery = isDev ? `CREATE TABLE applications (
     updated_at TEXT NOT NULL,
     
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-
-CREATE INDEX idx_applications_user_id ON applications(user_id);
-CREATE INDEX idx_applications_created_at ON applications(created_at);` : `
-CREATE TABLE applications (
+)` : `CREATE TABLE IF NOT EXISTS applications (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL,
     
@@ -249,17 +245,28 @@ CREATE TABLE applications (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
     CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
+)`;
 
-CREATE INDEX idx_applications_user_id ON applications(user_id);
-CREATE INDEX idx_applications_created_at ON applications(created_at);
-`
+// ADD SEPARATE INDEX QUERIES
+const createApplicationIndexes = isDev ? [
+  `CREATE INDEX IF NOT EXISTS idx_applications_user_id ON applications(user_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_applications_created_at ON applications(created_at)`
+] : [
+  `CREATE INDEX IF NOT EXISTS idx_applications_user_id ON applications(user_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_applications_created_at ON applications(created_at)`
+];
 async function Xome(){
 	await db.query(createTableQuery);
   await db.query(createClassesQuery);
   await db.query(createLibraryQuery);
   await db.query(createLibraryQuery2);
-  await db.query(createApplicationTableQuery)
+  // Run table creation
+db.query(createApplicationTableQuery);
+
+// Run indexes separately
+createApplicationIndexes.forEach(indexQuery => {
+  db.query(indexQuery);
+});
 	console.log("Table Created Successfully")
 }
 Xome()

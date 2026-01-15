@@ -20,8 +20,8 @@ const moderatorController = {
   async getStudentsList(req, res) {
     try {
       const students = await db.query(
-        "select id,full_name,email,education_level,created_at from users where is_moderator = $1 and is_teacher = $2",
-        [0, 0]
+        "select id,full_name,email,education_level,created_at from users where is_moderator = $1",
+        [0]
       );
       res.status(200).json({
         status: 200,

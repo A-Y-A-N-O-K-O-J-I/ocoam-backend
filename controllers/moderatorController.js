@@ -27,7 +27,8 @@ const moderatorController = {
         status: 200,
         students: students.rows,
       });
-    } catch {
+    } catch(error){
+      console.log("Student count error", error)
       res.status(500).json({
         status: 500,
         message: "An error occured",

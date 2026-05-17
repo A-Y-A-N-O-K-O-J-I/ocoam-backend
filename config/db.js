@@ -24,7 +24,13 @@ const createTableQuery = isDev ? `CREATE TABLE IF NOT EXISTS users (
   verification_token_created_at TEXT,
   education_level TEXT NOT NULL,
   reset_token_created_at DATETIME,
-  is_moderator BOOLEAN DEFAULT 0
+  is_moderator BOOLEAN DEFAULT 0,
+  admission_form_payment_status TEXT DEFAULT 'unpaid',
+  admission_form_payment_amount INTEGER DEFAULT 0,
+  admission_form_payment_currency TEXT DEFAULT 'NGN',
+  admission_form_payment_tx_ref TEXT,
+  admission_form_payment_transaction_id TEXT,
+  admission_form_paid_at TEXT
 );` : `CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
   username TEXT UNIQUE NOT NULL,
@@ -44,7 +50,13 @@ const createTableQuery = isDev ? `CREATE TABLE IF NOT EXISTS users (
   verification_token_created_at TEXT,
   education_level TEXT NOT NULL,
   reset_token_created_at TEXT,
-  is_moderator INTEGER DEFAULT 0
+  is_moderator INTEGER DEFAULT 0,
+  admission_form_payment_status TEXT DEFAULT 'unpaid',
+  admission_form_payment_amount INTEGER DEFAULT 0,
+  admission_form_payment_currency TEXT DEFAULT 'NGN',
+  admission_form_payment_tx_ref TEXT,
+  admission_form_payment_transaction_id TEXT,
+  admission_form_paid_at TIMESTAMP
 );`
 
 const createLibraryQuery2 = isDev ? `
@@ -255,11 +267,45 @@ const createApplicationIndexes = isDev ? [
   `CREATE INDEX IF NOT EXISTS idx_applications_user_id ON applications(user_id)`,
   `CREATE INDEX IF NOT EXISTS idx_applications_created_at ON applications(created_at)`
 ];
+
+const userPaymentMigrationQueries = isDev ? [
+  `ALTER TABLE users ADD COLUMN admission_form_payment_status TEXT DEFAULT 'unpaid'`,
+  `ALTER TABLE users ADD COLUMN admission_form_payment_amount INTEGER DEFAULT 0`,
+  `ALTER TABLE users ADD COLUMN admission_form_payment_currency TEXT DEFAULT 'NGN'`,
+  `ALTER TABLE users ADD COLUMN admission_form_payment_tx_ref TEXT`,
+  `ALTER TABLE users ADD COLUMN admission_form_payment_transaction_id TEXT`,
+  `ALTER TABLE users ADD COLUMN admission_form_paid_at TEXT`
+] : [
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS admission_form_payment_status TEXT DEFAULT 'unpaid'`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS admission_form_payment_amount INTEGER DEFAULT 0`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS admission_form_payment_currency TEXT DEFAULT 'NGN'`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS admission_form_payment_tx_ref TEXT`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS admission_form_payment_transaction_id TEXT`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS admission_form_paid_at TIMESTAMP`
+];
+
+async function runOptionalQuery(query) {
+  try {
+    await db.query(query);
+  } catch (error) {
+    const message = error?.message?.toLowerCase?.() || "";
+    const ignorableError =
+      message.includes("duplicate column") ||
+      message.includes("already exists");
+
+    if (!ignorableError) {
+      throw error;
+    }
+  }
+}
 async function Xome(){
 	await db.query(createTableQuery);
   await db.query(createClassesQuery);
   await db.query(createLibraryQuery);
   await db.query(createLibraryQuery2);
+  for (const migrationQuery of userPaymentMigrationQueries) {
+    await runOptionalQuery(migrationQuery);
+  }
   // Run table creation
 db.query(createApplicationTableQuery);
 

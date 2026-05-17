@@ -8,6 +8,16 @@ const { uploadApplicationDocuments } = require("../middlewares/multerConfig");
 const router = express.Router();
 router.get("/dashboard", authMiddleware, students.dashboard);
 router.post(
+  "/payment/initialize",
+  authMiddleware,
+  applicationController.initializeApplicationPayment
+);
+router.post(
+  "/payment/verify",
+  authMiddleware,
+  applicationController.verifyApplicationPayment
+);
+router.post(
   "/apply",
   authMiddleware,
   uploadApplicationDocuments,

@@ -1,13 +1,256 @@
 const db = require("../config/db");
+const axios = require("axios");
 const uploadBufferToCloudinary = require("../helpers/cloudinary");
 const { sendApplicationConfirmationEmail } = require("../helpers/email");
 
+const APPLICATION_FORM_FEE = 11500;
+const APPLICATION_FORM_CURRENCY = "NGN";
+const FLW_BASE_URL = process.env.FLW_BASE_URL || "https://api.flutterwave.com/v3";
+
+function getFlutterwaveHeaders() {
+  return {
+    Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+    "Content-Type": "application/json",
+  };
+}
+
+function getFrontendFormUrl() {
+  return process.env.FRONTEND_FORM_URL || `${process.env.DOMAIN_NAME}/form`;
+}
+
 const applicationController = {
+  async initializeApplicationPayment(req, res) {
+    const userId = req.user.id;
+
+    if (!process.env.FLW_SECRET_KEY) {
+      return res.status(500).json({
+        status: 500,
+        message: "Flutterwave is not configured on the server.",
+      });
+    }
+
+    try {
+      const userResult = await db.query(
+        `SELECT id, email, full_name, admission_form_payment_status
+         FROM users
+         WHERE id = $1`,
+        [userId]
+      );
+
+      const user = userResult.rows[0];
+
+      if (!user) {
+        return res.status(404).json({
+          status: 404,
+          message: "User not found.",
+        });
+      }
+
+      if (user.admission_form_payment_status === "paid") {
+        return res.status(200).json({
+          status: 200,
+          already_paid: true,
+          message: "Application form fee has already been paid.",
+        });
+      }
+
+      const txRef = `ocoam-form-${userId}-${Date.now()}`;
+      const payload = {
+        tx_ref: txRef,
+        amount: APPLICATION_FORM_FEE,
+        currency: APPLICATION_FORM_CURRENCY,
+        redirect_url: getFrontendFormUrl(),
+        customer: {
+          email: user.email,
+          name: user.full_name,
+        },
+        customizations: {
+          title: "OCOAM Admission Form Payment",
+          description: "Payment for the OCOAM admission form",
+        },
+        meta: {
+          user_id: String(userId),
+          fee_type: "admission_form",
+        },
+      };
+
+      const paymentResponse = await axios.post(
+        `${FLW_BASE_URL}/payments`,
+        payload,
+        { headers: getFlutterwaveHeaders() }
+      );
+
+      const paymentLink = paymentResponse?.data?.data?.link;
+
+      if (!paymentLink) {
+        return res.status(502).json({
+          status: 502,
+          message: "Flutterwave did not return a payment link.",
+        });
+      }
+
+      await db.query(
+        `UPDATE users
+         SET admission_form_payment_status = $1,
+             admission_form_payment_amount = $2,
+             admission_form_payment_currency = $3,
+             admission_form_payment_tx_ref = $4,
+             admission_form_payment_transaction_id = NULL,
+             admission_form_paid_at = NULL
+         WHERE id = $5`,
+        ["pending", APPLICATION_FORM_FEE, APPLICATION_FORM_CURRENCY, txRef, userId]
+      );
+
+      return res.status(200).json({
+        status: 200,
+        payment_link: paymentLink,
+        tx_ref: txRef,
+        amount: APPLICATION_FORM_FEE,
+        currency: APPLICATION_FORM_CURRENCY,
+      });
+    } catch (error) {
+      console.error("Flutterwave initialize payment error:", error.response?.data || error);
+      return res.status(500).json({
+        status: 500,
+        message: "Unable to initialize payment. Please try again.",
+      });
+    }
+  },
+
+  async verifyApplicationPayment(req, res) {
+    const userId = req.user.id;
+    const { transaction_id, tx_ref } = req.body;
+
+    if (!process.env.FLW_SECRET_KEY) {
+      return res.status(500).json({
+        status: 500,
+        message: "Flutterwave is not configured on the server.",
+      });
+    }
+
+    if (!tx_ref) {
+      return res.status(400).json({
+        status: 400,
+        message: "tx_ref is required.",
+      });
+    }
+
+    try {
+      const userResult = await db.query(
+        `SELECT id, admission_form_payment_status, admission_form_payment_tx_ref
+         FROM users
+         WHERE id = $1`,
+        [userId]
+      );
+
+      const user = userResult.rows[0];
+
+      if (!user) {
+        return res.status(404).json({
+          status: 404,
+          message: "User not found.",
+        });
+      }
+
+      const verificationResponse = transaction_id
+        ? await axios.get(
+            `${FLW_BASE_URL}/transactions/${transaction_id}/verify`,
+            { headers: getFlutterwaveHeaders() }
+          )
+        : await axios.get(
+            `${FLW_BASE_URL}/transactions/verify_by_reference`,
+            {
+              headers: getFlutterwaveHeaders(),
+              params: { tx_ref },
+            }
+          );
+
+      const verifiedTransaction = verificationResponse?.data?.data;
+      const verifiedStatus = verifiedTransaction?.status;
+      const verifiedAmount = Number(verifiedTransaction?.amount || 0);
+      const verifiedCurrency = verifiedTransaction?.currency;
+      const verifiedTxRef = verifiedTransaction?.tx_ref;
+      const verifiedTransactionId = verifiedTransaction?.id || transaction_id;
+
+      const isValidPayment =
+        verifiedStatus === "successful" &&
+        verifiedAmount >= APPLICATION_FORM_FEE &&
+        verifiedCurrency === APPLICATION_FORM_CURRENCY &&
+        verifiedTxRef === tx_ref &&
+        user.admission_form_payment_tx_ref === tx_ref;
+
+      if (!isValidPayment) {
+        await db.query(
+          `UPDATE users
+           SET admission_form_payment_status = $1
+           WHERE id = $2`,
+          ["failed", userId]
+        );
+
+        return res.status(400).json({
+          status: 400,
+          message: "Payment could not be verified.",
+        });
+      }
+
+      const paidAt = new Date().toISOString();
+
+      await db.query(
+        `UPDATE users
+         SET admission_form_payment_status = $1,
+             admission_form_payment_amount = $2,
+             admission_form_payment_currency = $3,
+             admission_form_payment_tx_ref = $4,
+             admission_form_payment_transaction_id = $5,
+             admission_form_paid_at = $6
+         WHERE id = $7`,
+        [
+          "paid",
+          APPLICATION_FORM_FEE,
+          APPLICATION_FORM_CURRENCY,
+          tx_ref,
+          verifiedTransactionId ? String(verifiedTransactionId) : null,
+          paidAt,
+          userId,
+        ]
+      );
+
+      return res.status(200).json({
+        status: 200,
+        message: "Payment verified successfully.",
+        payment_status: "paid",
+        amount: APPLICATION_FORM_FEE,
+      });
+    } catch (error) {
+      console.error("Flutterwave verify payment error:", error.response?.data || error);
+      return res.status(500).json({
+        status: 500,
+        message: "Unable to verify payment. Please try again.",
+      });
+    }
+  },
+
   async submitApplication(req, res) {
     const userId = req.user.id;
     const userEmail = req.user.email;
 
     try {
+      const paymentStatusResult = await db.query(
+        `SELECT admission_form_payment_status
+         FROM users
+         WHERE id = $1`,
+        [userId]
+      );
+
+      const paymentStatus = paymentStatusResult.rows[0]?.admission_form_payment_status;
+
+      if (paymentStatus !== "paid") {
+        return res.status(402).json({
+          status: 402,
+          message: "Please pay the application form fee before submitting.",
+        });
+      }
+
       // Check if user already submitted an application
       const existingApplication = await db.query(
         "SELECT id FROM applications WHERE user_id = $1",
@@ -312,23 +555,42 @@ const pioneer_discount_applied = count < 20 ? 1 : 0;
     const userId = req.user.id;
 
     try {
+      const userResult = await db.query(
+        `SELECT admission_form_payment_status, admission_form_payment_amount,
+                admission_form_payment_currency, admission_form_payment_tx_ref,
+                admission_form_payment_transaction_id, admission_form_paid_at
+         FROM users
+         WHERE id = $1`,
+        [userId]
+      );
+
+      const user = userResult.rows[0];
+
+      if (!user) {
+        return res.status(404).json({
+          status: 404,
+          message: "User not found.",
+        });
+      }
+
       const application = await db.query(
         "SELECT id, created_at, pioneer_discount_applied FROM applications WHERE user_id = $1",
         [userId]
       );
 
-      if (application.rows.length === 0) {
-        return res.status(404).json({
-          status: 404,
-          message: "No application found.",
-          has_applied: false,
-        });
-      }
-
       res.status(200).json({
         status: 200,
-        has_applied: true,
-        application: application.rows[0],
+        has_applied: application.rows.length > 0,
+        application: application.rows[0] || null,
+        payment: {
+          status: user.admission_form_payment_status || "unpaid",
+          has_paid: user.admission_form_payment_status === "paid",
+          amount: user.admission_form_payment_amount || 0,
+          currency: user.admission_form_payment_currency || APPLICATION_FORM_CURRENCY,
+          tx_ref: user.admission_form_payment_tx_ref || null,
+          transaction_id: user.admission_form_payment_transaction_id || null,
+          paid_at: user.admission_form_paid_at || null,
+        },
       });
     } catch (error) {
       console.error("Check application status error:", error);
